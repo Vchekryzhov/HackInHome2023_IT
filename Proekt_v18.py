@@ -5,9 +5,10 @@ import bcrypt
 import pandas as pd
 import os
 import re
+import openpyxl
 
 # 6944633884:AAGqYnI85VIRnq9DlR4AoiZ1O6pWAEm0y38
-bot = telebot.TeleBot("6944633884:AAGqYnI85VIRnq9DlR4AoiZ1O6pWAEm0y38") 
+bot = telebot.TeleBot("6944633884:AAGqYnI85VIRnq9DlR4AoiZ1O6pWAEm0y38")
 conn = sqlite3.connect('C:\\Users\\Dmitriy Novichkov\\Desktop\\HackInHome 2023\\database.db',
                        check_same_thread=False)
 cursor = conn.cursor()
@@ -380,6 +381,18 @@ def change_str1(message):
         want_change_doc = False
 
 
+def del_str(message):
+    global max_index
+    if int(message.text) > max_index or int(message.text) <= 0:
+        bot.send_message(message.chat.id, "Некорректно указанный индекс!")
+    else:
+        conn.execute("DELETE FROM FirstOfAll WHERE Indexes = ?", (message.text,))
+        for i in range(int(message.text) + 1, max_index + 1):
+            conn.execute("UPDATE FirstOfAll SET Indexes = ? WHERE Indexes = ?", (i - 1, i))
+        conn.commit()
+        max_index -= 1
+        bot.send_message(message.chat.id, "Документ успешно удалён!")
+
 
 @bot.message_handler(commands=['start'])
 def start(message):
@@ -511,6 +524,9 @@ def func(message):
                                                "укажите все новые параметры строки:")
         bot.register_next_step_handler(message, change_str1)
     elif message.text == "💣 Удалить документ":
+        want_change_doc = True
+        bot.send_message(message.chat.id, text="Укажите индекс удаляемой строки:")
+        bot.register_next_step_handler(message, del_str)
 
         cursor.execute('SELECT MAX(Indexes) FROM FirstOfAll')
         max_index = cursor.fetchone()[0]
@@ -563,8 +579,8 @@ def func(message):
             bot.send_message(message.chat.id, text='Укажите ключ доступа:')
             want_add_it = True
     elif message.text == "Как создать запрос в БД?":
-        bot.send_message(message.chat.id, "Нажмите поиск"
-                                          " После этого введите свой запрос")
+        bot.send_message(message.chat.id, "Нажмите поиск,"
+                                          " после этого введите свой запрос")
 
     elif message.text == "Что этот бот умеет делать?":
         bot.send_message(message.chat.id, text="Этот бот умеет"
